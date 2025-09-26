@@ -1,120 +1,411 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Task Dashboard</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TaskMaster Pro Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --sidebar-bg: #2c3e50; /* Deep Blue/Dark Grey */
+            --header-height: 60px;
+            --main-bg: #f4f6f9; /* Light Grey Background */
+            --primary-color: #007bff;
+            --success-color: #28a745;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--main-bg);
+            margin: 0;
+            padding-top: var(--header-height); /* Space for fixed header */
+        }
+        
+        /* 1. Header Styling */
+        .app-header {
+            height: var(--header-height);
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,.05);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+        }
+
+        /* 2. Sidebar Styling */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            color: #ecf0f1; /* Light text color */
+            position: fixed;
+            top: var(--header-height);
+            bottom: 0;
+            left: 0;
+            padding: 1rem;
+            box-shadow: 2px 0 5px rgba(0,0,0,.1);
+            overflow-y: auto;
+        }
+
+        .sidebar .nav-link {
+            color: #ecf0f1;
+            padding: 10px 15px;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: #34495e; /* Slightly lighter dark blue on hover */
+            color: #ffffff;
+        }
+        
+        /* 3. Main Content Area */
+        .main-content {
+            margin-left: var(--sidebar-width); /* Space for sidebar */
+            padding: 30px;
+        }
+
+        /* 4. KPI/Stat Card Styling (Professional Look) */
+        .stat-card {
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+        }
+        .stat-card:hover {
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card .icon-box {
+            background-color: var(--primary-color);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .stat-card .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        /* 5. Task Card Styling */
+        .task-list-card .card-body {
+            padding: 0.75rem 1rem;
+        }
+        .task-list-card .btn-sm {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.85rem;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                top: 0;
+                height: auto;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="container mt-5">
-<div id="loginDiv" class="card p-4">
-<h2>Login / Register</h2>
-<input type="text" id="username" class="form-control mb-2" placeholder="Username">
-<input type="email" id="email" class="form-control mb-2" placeholder="Email">
-<button class="btn btn-primary" onclick="loginUser()">Login</button>
+
+<header class="app-header d-flex align-items-center">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <div class="ms-3 me-5">
+            <h4 class="m-0 text-primary fw-bold">Task Dashboard Pro</h4>
+        </div>
+        <div id="userProfile" style="display:none;" class="d-flex align-items-center me-3">
+            <span class="text-secondary me-3 d-none d-md-block">স্বাগতম, <span id="userDisplay" class="fw-bold"></span></span>
+            <button class="btn btn-sm btn-outline-danger" onclick="logoutUser()">লগআউট</button>
+        </div>
+    </div>
+</header>
+
+<div id="app-wrapper" class="d-flex">
+    
+    <nav id="sidebar" class="sidebar">
+        <ul class="nav flex-column">
+            <li class="nav-item mb-2">
+                <a class="nav-link active" href="#">
+                    <i class="fas fa-chart-line me-2"></i> ড্যাশবোর্ড
+                </a>
+            </li>
+            <li class="nav-item mb-2">
+                <a class="nav-link" href="#" onclick="listTasks()">
+                    <i class="fas fa-tasks me-2"></i> টাস্ক তালিকা
+                </a>
+            </li>
+            <li class="nav-item mb-2">
+                <a class="nav-link" href="#" onclick="withdrawRequest()">
+                    <i class="fas fa-hand-holding-dollar me-2"></i> উইথড্র
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="main-content flex-grow-1">
+
+        <div id="loginDiv" class="card p-4 mx-auto" style="max-width: 450px;">
+            <h3 class="card-title text-center mb-4 text-primary">প্রবেশ করুন</h3>
+            <p class="text-muted text-center">আপনার ড্যাশবোর্ডে প্রবেশ করতে লগইন করুন।</p>
+            <input type="text" id="username" class="form-control mb-3" placeholder="ইউজারনেম (Username)">
+            <input type="email" id="email" class="form-control mb-4" placeholder="ইমেইল (Email)">
+            <button class="btn btn-primary w-100" onclick="loginUser()">লগইন / রেজিস্ট্রেশন</button>
+        </div>
+
+        <div id="dashboardDiv" style="display:none;">
+            
+            <div class="row g-4 mb-5">
+                <div class="col-12 col-lg-6">
+                    <div class="card stat-card p-3">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-box bg-primary me-3">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div>
+                                <p class="text-uppercase text-muted m-0 fw-bold small">মোট পয়েন্ট</p>
+                                <div class="stat-value" id="userPoints">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-12 col-lg-6">
+                    <div class="card stat-card p-3">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-box" style="background-color: var(--success-color);">
+                                <i class="fas fa-list-check"></i>
+                            </div>
+                            <div>
+                                <p class="text-uppercase text-muted m-0 fw-bold small">মোট টাস্ক</p>
+                                <div class="stat-value" id="totalTasksCount">5</div> 
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-4 task-list-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="mb-0 text-primary">উপলব্ধ টাস্কসমূহ</h4>
+                    <button class="btn btn-success" onclick="withdrawRequest()">
+                        <i class="fas fa-money-bill-transfer me-1"></i> উইথড্র করুন
+                    </button>
+                </div>
+                
+                <div id="tasksList" class="row g-3">
+                    <p class="text-muted text-center" id="loadingText">টাস্ক লোড হচ্ছে...</p>
+                </div>
+            </div>
+            
+        </div>
+    </main>
 </div>
 
-<div id="dashboardDiv" style="display:none;">
-<h2>Welcome, <span id="userDisplay"></span></h2>
-<h4>Your Points: <span id="userPoints">0</span></h4>
-<h4>Available Tasks:</h4>
-<div id="tasksList"></div>
-<br>
-<button class="btn btn-success" onclick="withdrawRequest()">Withdraw</button>
-<button class="btn btn-secondary" onclick="logoutUser()">Logout</button>
-</div>
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyAhSjh1VxQFrzslIwOZ1yOxLYuNT2Le_sg",
-  authDomain: "fram-and-go.firebaseapp.com",
-  databaseURL: "https://fram-and-go-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "fram-and-go",
-  storageBucket: "fram-and-go.firebasestorage.app",
-  messagingSenderId: "781295119002",
-  appId: "1:781295119002:web:3d84890a0bb85e5d1c0d23",
-  measurementId: "G-H30RNBNE6X"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+    // ----------------------------------------------------------------
+    // WARNING: Replace with your actual Firebase config
+    // ----------------------------------------------------------------
+    const firebaseConfig = {
+        databaseURL: "YOUR_FIREBASE_DATABASE_URL", // <-- Change this
+        // Other configs are not strictly needed for the database demo
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-let currentUserId = null;
+    let currentUserId = null;
+    let currentUserData = null;
 
-function loginUser(){
-    const username = document.getElementById('username').value.trim();
-    const email = document.getElementById('email').value.trim();
-    if(!username || !email){ alert("Enter both fields"); return; }
-    currentUserId = email.replace(/[.#$[\]]/g,"_");
-    db.ref('users/' + currentUserId).get().then(snapshot=>{
-        if(!snapshot.exists()){
-            db.ref('users/' + currentUserId).set({username,email,points:0,completedTasks:{}});
+    function loginUser(){
+        const username = document.getElementById('username').value.trim();
+        const email = document.getElementById('email').value.trim();
+
+        if(!username || !email){
+            alert("ইউজারনেম এবং ইমেইল দুটোই দিতে হবে।");
+            return;
         }
-        showDashboard(username);
-    });
-}
+        
+        currentUserId = btoa(email.toLowerCase()).replace(/=/g, ''); 
 
-function logoutUser(){
-    currentUserId = null;
-    document.getElementById('loginDiv').style.display='block';
-    document.getElementById('dashboardDiv').style.display='none';
-}
-
-function showDashboard(username){
-    document.getElementById('userDisplay').innerText = username;
-    document.getElementById('loginDiv').style.display='none';
-    document.getElementById('dashboardDiv').style.display='block';
-    loadTasks();
-    updatePoints();
-}
-
-function loadTasks(){
-    db.ref('tasks').get().then(snapshot=>{
-        const tasksList = document.getElementById('tasksList');
-        tasksList.innerHTML='';
-        if(!snapshot.exists()){ tasksList.innerHTML="<p>No tasks available</p>"; return; }
-        snapshot.forEach(child=>{
-            const t = child.val();
-            const id = child.key;
-            const div = document.createElement('div');
-            div.className = 'card p-2 mb-2';
-            div.innerHTML = `<strong>${t.title}</strong> - Points: ${t.points} 
-            <a href="${t.link}" target="_blank" class="btn btn-sm btn-primary ms-2" onclick="completeTask('${id}',${t.points})">Complete</a>`;
-            tasksList.appendChild(div);
+        db.ref('users/' + currentUserId).get().then(snapshot => {
+            if (snapshot.exists()) {
+                currentUserData = snapshot.val();
+            } else {
+                currentUserData = { username: username, email: email, points: 0, completedTasks: {} };
+                db.ref('users/' + currentUserId).set(currentUserData);
+            }
+            showDashboard(username);
+            updatePoints();
+            listTasks();
+        }).catch(error => {
+            console.error(error);
+            alert("লগইন/রেজিস্ট্রেশন ব্যর্থ হয়েছে।");
         });
-    });
-}
+    }
+    
+    function showDashboard(username){
+        document.getElementById('sidebar').style.display = 'block';
+        document.getElementById('loginDiv').style.display = 'none';
+        document.getElementById('dashboardDiv').style.display = 'block';
+        document.getElementById('userProfile').style.display = 'flex';
+        document.getElementById('userDisplay').innerText = username;
+    }
 
-function updatePoints(){
-    db.ref('users/' + currentUserId + '/points').get().then(snap=>{
-        document.getElementById('userPoints').innerText = snap.val() || 0;
-    });
-}
+    function logoutUser(){
+        currentUserId = null;
+        currentUserData = null;
+        document.getElementById('sidebar').style.display = 'none'; // Hide sidebar on logout
+        document.getElementById('loginDiv').style.display = 'block';
+        document.getElementById('dashboardDiv').style.display = 'none';
+        document.getElementById('userProfile').style.display = 'none';
+        document.getElementById('tasksList').innerHTML = '<p class="text-muted text-center">টাস্ক লোড হচ্ছে...</p>';
+    }
 
-function completeTask(taskId,points){
-    db.ref('users/' + currentUserId + '/completedTasks/' + taskId).get().then(snap=>{
-        if(snap.exists()){ alert("Already completed"); return; }
-        db.ref('users/' + currentUserId + '/completedTasks/' + taskId).set(true);
-        db.ref('users/' + currentUserId + '/points').transaction(p=> (p||0)+points);
-        setTimeout(updatePoints,200);
-    });
-}
+    function updatePoints(){
+        // Listen for real-time updates for the points
+        db.ref('users/' + currentUserId + '/points').on('value', snap=>{
+             document.getElementById('userPoints').innerText = snap.val() || 0;
+        });
+    }
 
-function withdrawRequest(){
-    db.ref('users/' + currentUserId + '/points').get().then(snap=>{
-        const points = snap.val()||0;
-        if(points<50){ alert("Minimum 50 points required"); return; }
-        const newRequest = db.ref('withdraw_requests').push();
-        newRequest.set({userId:currentUserId,points,status:"pending"});
-        db.ref('users/' + currentUserId + '/points').set(0);
-        updatePoints();
-        alert("Withdraw request submitted!");
+    function listTasks(){
+        const tasksList = document.getElementById('tasksList');
+        tasksList.innerHTML = '';
+        document.getElementById('loadingText')?.remove(); 
+
+        // Define a simple task list to show the professional design structure
+        const dummyTasks = {
+             "task_1": { title: "আমাদের Facebook পেজ লাইক করুন", points: 10, link: "https://www.facebook.com/yourpage" },
+             "task_2": { title: "YouTube চ্যানেলে সাবস্ক্রাইব করুন", points: 15, link: "https://www.youtube.com/yourchannel" },
+             "task_3": { title: "একটি অ্যাপ ডাউনলোড করে রেটিং দিন", points: 25, link: "https://play.google.com/store" },
+             "task_4": { title: "একটি ছোট সমীক্ষা সম্পূর্ণ করুন", points: 12, link: "#" },
+             "task_5": { title: "বন্ধুকে রেফার করুন", points: 30, link: "#" }
+        };
+        
+        document.getElementById('totalTasksCount').innerText = Object.keys(dummyTasks).length;
+
+        Object.keys(dummyTasks).forEach((id, index) => {
+            const t = dummyTasks[id];
+            const taskId = 'dummy_' + id; 
+
+            // Check completion status from Firebase
+            db.ref('users/' + currentUserId + '/completedTasks/' + taskId).get().then(completedSnap => {
+                const isCompleted = completedSnap.exists();
+                
+                const taskCard = document.createElement('div');
+                taskCard.className = 'col-12';
+                taskCard.innerHTML = `
+                    <div class="card task-list-card p-2 shadow-sm ${isCompleted ? 'bg-light border-success' : 'border-start border-4 border-primary'}">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title fw-semibold mb-0">${t.title}</h6>
+                                <p class="card-text text-success fw-bold m-0 small">${t.points} Points</p>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <a href="${t.link}" target="_blank" class="btn btn-sm btn-outline-secondary me-2">
+                                    <i class="fas fa-eye me-1"></i> দেখুন
+                                </a>
+                                <button class="btn btn-sm ${isCompleted ? 'btn-success' : 'btn-primary'}" 
+                                        onclick="completeTask('${taskId}', ${t.points})" 
+                                        ${isCompleted ? 'disabled' : ''}>
+                                    ${isCompleted ? '<i class="fas fa-check"></i> সম্পন্ন' : 'সম্পূর্ণ করুন'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                tasksList.appendChild(taskCard);
+            });
+        });
+
+        if (Object.keys(dummyTasks).length === 0) {
+            tasksList.innerHTML = '<p class="text-info text-center">এই মুহূর্তে কোনো টাস্ক নেই।</p>';
+        }
+    }
+
+    function completeTask(taskId, points){
+        if(!currentUserId) {
+             alert("দয়া করে প্রথমে লগইন করুন।");
+             return;
+        }
+
+        db.ref('users/' + currentUserId + '/completedTasks/' + taskId).get().then(snap=>{
+            if(snap.exists()){ 
+                alert("এই টাস্কটি আপনি ইতিমধ্যে সম্পন্ন করেছেন।"); 
+                return; 
+            }
+            
+            // 1. Mark as completed
+            db.ref('users/' + currentUserId + '/completedTasks/' + taskId).set(true);
+            
+            // 2. Update points using a transaction for safety
+            db.ref('users/' + currentUserId + '/points').transaction(p=> (p||0)+points, (error, committed, snapshot) => {
+                if(committed) {
+                    listTasks(); // Refresh task list to show status change
+                    alert(`টাস্ক সম্পন্ন! আপনি ${points} পয়েন্ট অর্জন করেছেন।`);
+                }
+            });
+        });
+    }
+
+    function withdrawRequest(){
+        if(!currentUserId) {
+             alert("দয়া করে প্রথমে লগইন করুন।");
+             return;
+        }
+        
+        db.ref('users/' + currentUserId + '/points').get().then(snap=>{
+            const points = snap.val()||0;
+            if(points < 50){ 
+                alert(`উইথড্র করার জন্য সর্বনিম্ন ৫০ পয়েন্ট প্রয়োজন। আপনার আছে: ${points} পয়েন্ট।`); 
+                return; 
+            }
+            
+            const method = prompt("আপনার উইথড্রয়াল পদ্ধতি (যেমন: Bkash/Nagad নাম্বার) লিখুন:");
+            if(!method){ return; }
+
+            // 1. Create new withdrawal request
+            const newRequest = db.ref('withdraw_requests').push();
+            newRequest.set({
+                userId: currentUserId,
+                username: document.getElementById('userDisplay').innerText,
+                points: points,
+                method: method,
+                timestamp: new Date().toISOString(),
+                status: 'Pending'
+            });
+
+            // 2. Reset user's points
+            db.ref('users/' + currentUserId + '/points').set(0);
+            
+            // 3. Update UI
+            alert(`উইথড্রয়াল অনুরোধ (${points} পয়েন্ট) সফলভাবে জমা হয়েছে। আপনার পয়েন্ট রিসেট করা হয়েছে।`);
+        });
+    }
+    
+    // Initial setup: Hide dashboard elements
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('sidebar').style.display = 'none';
     });
-}
+
 </script>
 </body>
 </html>
